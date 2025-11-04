@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f6fa;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        color: #2d3436;
+        margin-bottom: 30px;
+      }
+
+      .order {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        transition: transform 0.2s ease;
+      }
+
+      .order:hover {
+        transform: scale(1.01);
+      }
+
+      .order img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .order-details {
+        flex: 1;
+      }
+
+      .price {
+        color: green;
+        font-weight: bold;
+      }
+
+      .delete-btn {
+        background: #e74c3c;
+        border: none;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .delete-btn:hover {
+        background: #c0392b;
+      }
+
+      .empty {
+        text-align: center;
+        color: #777;
+        font-size: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Customer Orders</h1>
+    <div id="orders">Loading orders...</div>
+
+    <script>
+      const SUPABASE_URL = "https://vkmgqoxqrliuxuitetec.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrbWdxb3hxcmxpdXh1aXRldGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxNTk4NTAsImV4cCI6MjA3NzczNTg1MH0.AgPWmdmhhDpi09El445X7bgvzXn7ZWN6nHUNPUPhrJY";
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // 🗑 Delete an order
+      async function deleteOrder(id) {
+        const confirmDelete = confirm("Are you sure you want to delete this order?");
+        if (!confirmDelete) return;
+
+        console.log("🗑 Deleting order with ID:", id);
+        const { error } = await supabase.from("orders").delete().eq("id", id);
+
+        if (error) {
+          console.error("❌ Delete error:", error);
+          alert("Error deleting order: " + error.message);
+        } else {
+          alert("✅ Order deleted successfully!");
+          loadOrders();
+        }
+      }
+
+      // 🧾 Load all orders
+      async function loadOrders() {
+        const ordersContainer = document.getElementById("orders");
+        ordersContainer.innerHTML = "<p>Loading orders...</p>";
+
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("❌ Error loading orders:", error);
+          ordersContainer.innerHTML =
+            "<p style='color:red;'>Error loading orders: " + error.message + "</p>";
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          ordersContainer.innerHTML = "<p class='empty'>No orders yet.</p>";
+          return;
+        }
+
+        ordersContainer.innerHTML = data
+          .map(
+            (order) => `
+          <div class="order">
+            <img src="${order.shoe_image || "img/placeholder.png"}" alt="Product">
+            <div class="order-details">
+              <h3>${order.shoe_title || "Unnamed Shoe"}</h3>
+              <p><b>Name:</b> ${order.customer_name || "Unknown"}</p>
+              <p><b>Phone:</b> ${order.customer_phone || "-"}</p>
+              <p><b>Transaction ID:</b> ${order.transaction_id || "-"}</p>
+              <p class="price"><b>Price:</b> ₵${Number(order.price || 0).toFixed(2)}</p>
+              <p><b>Order Date:</b> ${
+                order.created_at
+                  ? new Date(order.created_at).toLocaleString()
+                  : "Unknown"
+              }</p>
+            </div>
+            <button class="delete-btn" onclick="deleteOrder('${order.id}')">🗑 Delete</button>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      // ✅ Initial load
+      loadOrders();
+    </script>
+  </body>
+</html>
